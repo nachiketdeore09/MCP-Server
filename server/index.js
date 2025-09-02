@@ -2,6 +2,7 @@ import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
+import { sendEmail } from "./mcp.tool.js";
 
 const server = new McpServer({
     name: "example-server",
@@ -30,6 +31,20 @@ server.tool(
                 }
             ]
         }
+    }
+)
+
+server.tool(
+    "SendEmail",
+    "Send an Email to give mail ID",
+    {
+        email: z.string().email(),
+        subject: z.string(),
+        description: z.string()
+    },
+    async (arg) => {
+        const { email, subject, description } = arg;
+        return sendEmail(email, subject, description);
     }
 )
 
