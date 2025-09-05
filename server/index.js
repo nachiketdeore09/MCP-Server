@@ -2,7 +2,7 @@ import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
-import { sendEmail } from "./mcp.tool.js";
+import { sendEmail, fetchEmails } from "./mcp.tool.js";
 
 const server = new McpServer({
     name: "example-server",
@@ -47,6 +47,16 @@ server.tool(
         return sendEmail(email, subject, description);
     }
 )
+server.tool(
+    "FetchEmails",
+    "Fetch latest emails from Gmail inbox",
+    {
+        maxResults: z.number().optional()
+    },
+    async (arg) => {
+        return fetchEmails(arg.maxResults || 5);
+    }
+);
 
 
 // to support multiple simultaneous connections we have a lookup object from
