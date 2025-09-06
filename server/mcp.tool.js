@@ -4,73 +4,8 @@ import ApiResponse from "./utils/apiResponse.js";
 import { google } from "googleapis";
 import path from "path";
 import fs from "fs";
-// import { getGmailClient } from "./utils/gmailClient.js";
 
 config({ path: "./.env" });
-
-
-// const twitterClient = new TwitterApi({
-//     appKey: process.env.TWITTER_API_KEY,
-//     appSecret: process.env.TWITTER_API_SECRET,
-//     accessToken: process.env.TWITTER_ACCESS_TOKEN,
-//     accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET
-// })
-
-// export async function createPost(status) {
-//     const newPost = await twitterClient.v2.tweet(status)
-
-//     return {
-//         content: [
-//             {
-//                 type: "text",
-//                 text: `Tweeted: ${status}`
-//             }
-//         ]
-//     }
-// }
-
-export async function sendEmail(email, subject, description) {
-    try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
-
-        const response = await transporter.sendMail({
-            from: process.env.EMAIL,
-            to: email,
-            subject: subject,
-            text: description,
-        });
-
-        if (response.rejected.length > 0) {
-            return new ApiResponse(
-                500,
-                error.message,
-                "failed to send email",
-            );
-
-        }
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Email sent successfully to ${email}`
-                }
-            ]
-        }
-    } catch (error) {
-        console.error(error);
-        return new ApiResponse(
-            500,
-            error.message,
-            "failed to send email",
-        );
-    }
-}
 
 // Authenticate with Gmail API
 const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
@@ -94,12 +29,61 @@ function getOAuthClient() {
     return oAuth2Client;
 }
 
+
+export async function sendEmail(to, subject, description) {
+    console.log(to, " ", subject, " ", description)
+    try {
+
+        const auth = getOAuthClient();
+        const gmail = google.gmail({ version: "v1", auth });
+
+        // Build raw email content in RFC 2822 format (base64url encoded)
+        const rawMessage = [
+            `From: "Me" <${auth.credentials?.email || "me"}>`,
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            "",
+            description,
+        ].join("\n");
+
+        const encodedMessage = Buffer.from(rawMessage)
+            .toString("base64")
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, ""); // base64url encoding
+
+        const res = await gmail.users.messages.send({
+            userId: "me",
+            requestBody: {
+                raw: encodedMessage,
+            },
+        });
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `✅ Email sent successfully to ${to}, id: ${res.data.id}`,
+                },
+            ],
+        };
+    } catch (error) {
+        console.error("Error sending email:", error);
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `❌ Failed to send email: ${error.message}`,
+                },
+            ],
+        };
+    }
+}
+
+
 export async function fetchEmails() {
     try {
-        console.log("mimmijmmimp", (process.env.GOOGLE_CLIENT_SECRET));
-        console.log("mimmijmmimp", `${process.env.GOOGLE_CLIENT_ID}`);
-        console.log("mimmijmmimp", process.env.GOOGLE_REDIRECT_URI);
-        console.log("mimmijmmimp", process.env.GOOGLE_REFRESH_TOKEN);
+
         const auth = getOAuthClient();
         const gmail = google.gmail({ version: "v1", auth });
 

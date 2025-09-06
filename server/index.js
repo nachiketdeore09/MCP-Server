@@ -13,7 +13,7 @@ const server = new McpServer({
 
 const app = express();
 
-
+// add 2 numbers
 server.tool(
     "addTwoNumbers",
     "Add two numbers",
@@ -33,7 +33,7 @@ server.tool(
         }
     }
 )
-
+// send mails
 server.tool(
     "SendEmail",
     "Send an Email to give mail ID",
@@ -44,9 +44,10 @@ server.tool(
     },
     async (arg) => {
         const { email, subject, description } = arg;
-        return sendEmail(email, subject, description);
+        return await sendEmail(email, subject, description);
     }
 )
+//fetch mails
 server.tool(
     "FetchEmails",
     "Fetch latest emails from Gmail inbox",
